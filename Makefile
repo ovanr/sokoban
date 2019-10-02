@@ -7,7 +7,7 @@
 PROJ = sokoban # the name of the project
 CC = gcc # name of compiler
 # define any compile-time flags
-CFLAGS = -std=c99 -Wall -O3 -Wuninitialized -Wunreachable-code -pedantic # there is a space at the end of this
+CFLAGS = -std=c99 -Wall -O3 -DDEBUG -Wuninitialized -Wunreachable-code -pedantic # there is a space at the end of this
 LFLAGS = -lm
 ###############################################
 # You don't need to edit anything below this line
@@ -19,7 +19,7 @@ OBJS := $(patsubst %.c, %.o, $(C_FILES))
 # To create the executable file we need the individual
 # object files
 $(PROJ): queue.o main.c
-	$(CC) $(LFLAGS) -O3 -o $(PROJ) main.c queue.o
+	$(CC) $(CFLAGS) $(LFLAGS) -o $(PROJ) main.c queue.o
 
 # To create each individual object file we need to
 # compile these files using the following general
