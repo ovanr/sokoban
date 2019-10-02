@@ -2,22 +2,16 @@
 #include <string.h>
 #include "queue.h"
 
-int insert_head_queue(Queue *ptr, void *data, u_int data_size)  {
-   Node *new_node = malloc(sizeof(Node));
-   new_node->data = malloc(sizeof(char)*data_size);
+int insert_head_queue(Queue *ptr, void *data)  {
+   if (data == NULL) {
+      return 1;
+   }
    
+   Node *new_node = malloc(sizeof(Node));
    if (new_node == NULL)
       return 1;
+   new_node->data = data;
    
-   if (new_node->data == NULL) {
-      free(new_node);
-      return 1;
-   }
-   if (NULL == memcpy(new_node->data, data, data_size)) {
-      free(new_node->data);
-      free(new_node);
-      return 1;
-   }
    new_node->next = ptr->head;
    ptr->head = new_node;
    ptr->length++;
@@ -27,22 +21,16 @@ int insert_head_queue(Queue *ptr, void *data, u_int data_size)  {
    return 0;
 }
 
-int insert_tail_queue(Queue *ptr, void *data, u_int data_size)  {
-   Node *new_node = malloc(sizeof(Node));
-   new_node->data = malloc(sizeof(char)*data_size);
+int insert_tail_queue(Queue *ptr, void *data)  {
+   if (data == NULL) {
+      return 1;
+   }
    
+   Node *new_node = malloc(sizeof(Node));
    if (new_node == NULL)
       return 1;
+   new_node->data = data;
    
-   if (new_node->data == NULL) {
-      free(new_node);
-      return 1;
-   }
-   if (NULL == memcpy(new_node->data, data, data_size)) {
-      free(new_node->data);
-      free(new_node);
-      return 1;
-   }
    new_node->next = NULL;
    ptr->length++;
    
@@ -56,24 +44,19 @@ int insert_tail_queue(Queue *ptr, void *data, u_int data_size)  {
    return 0;
 }
 
-int insert_sorted_queue(Queue *ptr, void *data, u_int data_size, int (*compare)(void *, void *))  {
-   Node *new_node = malloc(sizeof(Node));
-   new_node->data = malloc(sizeof(char)*data_size);
+int insert_sorted_queue(Queue *ptr, void *data, int (*compare)(void *, void *))  {
+   if (data == NULL) {
+      return 1;
+   }
    
+   Node *new_node = malloc(sizeof(Node));
    if (new_node == NULL)
       return 1;
-   if (new_node->data == NULL) {
-      free(new_node);
-      return 1;
-   }
-   if (NULL == memcpy(new_node->data, data, data_size)) {
-      free(new_node->data);
-      free(new_node);
-      return 1;
-   }
+   new_node->data = data;
    
    Node *counter = ptr->head;
    Node *previous = NULL;
+   
    while (counter != NULL) {
       if (compare(counter->data, data) >= 0) 
          break;
@@ -96,11 +79,11 @@ int insert_sorted_queue(Queue *ptr, void *data, u_int data_size, int (*compare)(
    return 0;
 }
 
-int remove_head_queue(Queue *ptr) {
+void *remove_head_queue(Queue *ptr) {
    if (ptr->head == NULL)
-      return 1;
+      return NULL;
    
-   free(ptr->head->data);
+   void *data = ptr->head->data;
    ptr->length--;
    if (ptr->length == 0) {
       free(ptr->head);
@@ -110,14 +93,14 @@ int remove_head_queue(Queue *ptr) {
       ptr->head = ptr->head->next;
       free(temp);
    }
-   return 0;
+   return data;
 }
 
-int remove_tail_queue(Queue *ptr) {
+void *remove_tail_queue(Queue *ptr) {
    if (ptr->tail == NULL)
-      return 1;
+      return NULL;
    
-   free(ptr->tail->data);
+   void *data = ptr->tail->data;
    ptr->length--;
    if (ptr->length == 0) {
       free(ptr->tail);
@@ -131,7 +114,7 @@ int remove_tail_queue(Queue *ptr) {
       ptr->tail = counter;
       ptr->tail->next = NULL;
    }
-   return 0;
+   return data;
 }
 
 void free_full_queue(Queue *ptr) {
