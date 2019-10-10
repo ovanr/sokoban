@@ -23,7 +23,8 @@ Available Heuristic Algorithms:<br/>
 - coarse_match   ->  *NON OPTIMAL, see source file*
 - match_closest  ->  *for each box get its minimum distance from a goal position and sum it all up (multiple boxes can be matched on the same goal position)*
 
-All the algorithms except the count_boxes, also add the minimum distance of the cursor from an unmatched box optional arguments:<br/>
+All the algorithms except the count_boxes, also add the minimum distance of the cursor from an unmatched box<br/>
+Optional arguments:<br/>
 - --help                  show this help message and exit
 - --silent                Don't print intermediary states
    
