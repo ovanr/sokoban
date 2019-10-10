@@ -134,6 +134,7 @@ int init_queue(Queue **ptr) {
       return 1;
    
    (*ptr)->length = 0;
+   (*ptr)->head = NULL;
    return 0;
 }
 

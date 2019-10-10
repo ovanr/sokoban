@@ -7,7 +7,7 @@
 PROJ = sokoban # the name of the project
 CC = gcc # name of compiler
 # define any compile-time flags
-CFLAGS = -std=c99 -Wall -O3 -DDEBUG -Wuninitialized -Wunreachable-code -pedantic # there is a space at the end of this
+CFLAGS = -std=c99 -Wall -O3 -Wuninitialized -Wunreachable-code -pedantic # there is a space at the end of this
 LFLAGS = -lm
 ###############################################
 # You don't need to edit anything below this line
@@ -32,8 +32,11 @@ $(PROJ): queue.o main.c
 all :
 	make
 
+debug: queue.o main.c
+	$(CC) $(CFLAGS) -DDEBUG $(LFLAGS) -o $(PROJ) main.c queue.o
+	
 queue.o: queue.c queue.h
 	$(CC) $(LFLAGS) $(CFLAGS) -c queue.c
 
 clean:
-	rm -rf *.o
+	rm -rf *.o sokoban
