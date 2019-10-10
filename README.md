@@ -17,14 +17,14 @@
 
    Default heuristic algorithm is match_closest
    
-   Available Heuristic Algorithms:<br/>
+   Available Heuristic Algorithms:
       - count_boxes      *Count the number of boxes that aren't in goal position only*
       - fixed_penalty    *find the minimum distance from an unmatched box to a goal position, and add that plus the (number of unmatched boxes-1) to final score*
       - coarse_match     *NON OPTIMAL, see source file*
       - match_closest    *for each box get its minimum distance from a goal position and sum it all up (multiple boxes can be matched on the same goal position)*
 
    All the algorithms except the count_boxes, also add the minimum distance of the cursor from an unmatched box
-   optional arguments:<br/>
+   optional arguments:
       - --help                  show this help message and exit
       - --silent                Don't print intermediary states
    
