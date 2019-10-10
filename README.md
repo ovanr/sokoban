@@ -22,9 +22,9 @@ Available Heuristic Algorithms:<br/>
 - fixed_penalty    *find the minimum distance from an unmatched box to a goal position, and add that plus the (number of unmatched boxes-1) to final score*
 - coarse_match     *NON OPTIMAL, see source file*
 - match_closest    *for each box get its minimum distance from a goal position and sum it all up (multiple boxes can be matched on the same goal position)*
-
+<br/>
 All the algorithms except the count_boxes, also add the minimum distance of the cursor from an unmatched box optional arguments:
 - --help                  show this help message and exit
 - --silent                Don't print intermediary states
    
-*where distance is defined as the difference of steps in the x direction and in the y direction, assuming no obstacles in between*
+*(where distance is defined as the difference of steps in the x direction and in the y direction, assuming no obstacles in between)*
