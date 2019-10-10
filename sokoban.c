@@ -1,28 +1,46 @@
+/*
+ sokoban.c Copyright (C) 2019 Orpheas van Rooij
+ 
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "queue.h"
 #include <math.h>
 #include <string.h>
-#include <float.h>
+#include <limits.h>
 
 #define True 1
 #define False 0
 
 #define PUZZLE_WIDTH_LIMIT 200
-#define OPTIMALITY_STRICTNESS 5  // 1 is for optimal, higher values sacrifice optimality for speed
+#define OPTIMALITY_STRICTNESS 1  // 1 is for optimal, higher values sacrifice optimality for speed and memory
 
 typedef struct {
-   u_int x;
-   u_int y;
+   int x;
+   int y;
 } Coordinate;
 
+// Lightweight state, only boxes coordinates and cursor coordinates are stored
 typedef struct state {
    u_char move_from_parent;
    struct state *parent;
    Coordinate *current_pos;
    Coordinate *boxes;
    int cost_score;
-   double heuristic_score;
+   u_int heuristic_score;
 } State;
    
 void err_exit(char *msg) {
@@ -30,26 +48,26 @@ void err_exit(char *msg) {
    exit(1);
 }
 
-// (A) find the box with the lowest euclidian distance from goal position
+// (A) find the box with the lowest distance from goal position
 // (B) and for the rest boxes that aren't in goal position add a penalty per box given by OPTIMALITY_STRICTNESS.
 // for the heuristic to be fully optimal, the OPTIMALITY_STRICTNESS assumes you will only need one move
 // per box to move to goal position. you can change this to something more reasonable but optimality may be sacrificed.
-// the euclidian distance of the current cursor compared to the box in (A) is added to the final score as well.
-double heuristic_fixed_penalty(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
-   double total_score = 0;
-   int mismatched_boxes_count = num_boxes;
-   double cursor_closest = 0;
+// the distance of the current cursor compared to the box in (A) is added to the final score as well.
+u_int heuristic_fixed_penalty(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
+   u_int total_score = 0;
+   u_int mismatched_boxes_count = num_boxes;
+   u_int cursor_closest = 0;
    
-   double global_min_score = DBL_MAX;
+   u_int global_min_score = UINT_MAX;
    
    for (u_int i = 0; i < num_boxes; i++) {
-      double local_min_score = DBL_MAX;
-      double score;
+      u_int local_min_score = UINT_MAX;
+      u_int score;
       for (u_int c = 0; c < num_boxes; c++) {
          
          // get score for box i and pos i
-         score = pow((double) boxes[i].x-goal_positions[c].x,2) + \
-         pow((double) boxes[i].y-goal_positions[c].y,2);
+         score = abs(boxes[i].x-goal_positions[c].x) + \
+         abs(boxes[i].y-goal_positions[c].y);
          if (score == 0)
             break;
          
@@ -60,8 +78,8 @@ double heuristic_fixed_penalty(Coordinate *boxes, Coordinate *goal_positions, Co
       if (score == 0) // if the box isn't in goal position then we can count its minimum score
          mismatched_boxes_count--;
       else if (global_min_score > local_min_score) {
-         cursor_closest =  pow((double) boxes[i].x-cursor->x,2) + \
-         pow((double) boxes[i].y-cursor->y,2);
+         cursor_closest =  abs(boxes[i].x-cursor->x) + \
+                              abs(boxes[i].y-cursor->y);
          global_min_score = local_min_score;
       }
    }
@@ -69,31 +87,31 @@ double heuristic_fixed_penalty(Coordinate *boxes, Coordinate *goal_positions, Co
    return total_score + cursor_closest;
 }
 
-// calculate euclidian distance between boxes and goal positions in a fifo priority
+// calculate distance between boxes and goal positions in a fifo priority
 // manner, so the first box in boxes array chooses from whole array, then the second
 // box chooses from the remaining N-1, and so on. 
 // NON-OPTIMAL
-// the minimum euclidian distance of the current cursor compared to all the boxes is added to the final score as well.
-double heuristic_coarse_match(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
-   double total_score = 0;
-   u_char used_goal_positions[num_boxes];
-   double cursor_closest = DBL_MAX;
+// the minimum distance of the current cursor compared to all the boxes is added to the final score as well.
+u_int heuristic_coarse_match(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
+   u_int total_score = 0;
+   _Bool used_goal_positions[num_boxes];
+   u_int cursor_closest = UINT_MAX;
    
    for (u_int x =0; x < num_boxes; x++)
-      used_goal_positions[x] = 0;
+      used_goal_positions[x] = False;
    
    for (u_int i = 0; i < num_boxes; i++) {
 
       
-      double local_min_score = DBL_MAX;
+      u_int local_min_score = UINT_MAX;
       u_int min_box = 0;
       for (u_int c = 0; c < num_boxes; c++) {
-         if (used_goal_positions[c] == 1)
+         if (used_goal_positions[c] == True)
             continue;
          
          // get score for box i and pos i
-         double score = sqrt(pow((double) boxes[i].x-goal_positions[c].x,2) + \
-         pow((double) boxes[i].y-goal_positions[c].y,2));
+         u_int score = abs(boxes[i].x-goal_positions[c].x) + \
+                           abs(boxes[i].y-goal_positions[c].y);
          
          
          if (local_min_score > score) {
@@ -102,12 +120,12 @@ double heuristic_coarse_match(Coordinate *boxes, Coordinate *goal_positions, Coo
          }
       }
       if (local_min_score != 0) {
-         double temp =  sqrt(pow((double) boxes[i].x-cursor->x,2) + \
-         pow((double) boxes[i].y-cursor->y,2));
+         u_int temp =  abs(boxes[i].x-cursor->x) + \
+                  abs(boxes[i].y-cursor->y);
          if (temp < cursor_closest)
             cursor_closest = temp;
       }
-      used_goal_positions[min_box] = 1;
+      used_goal_positions[min_box] = True;
       total_score += local_min_score;
    }
    
@@ -115,31 +133,31 @@ double heuristic_coarse_match(Coordinate *boxes, Coordinate *goal_positions, Coo
 
 }
 
-// calculate the euclidian distance between the boxes and all the goal positions 
+// calculate the distance between the boxes and all the goal positions 
 // and add the minimum distance per box to final score.
 // OPTIMAL
-// the minimum euclidian distance of the current cursor compared to all the boxes is added to the final score as well.
-double heuristic_match_closest(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
-   double total_score = 0;   
-   double cursor_closest = DBL_MAX;
+// the minimum distance of the current cursor compared to all the boxes is added to the final score as well.
+u_int heuristic_match_closest(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
+   u_int total_score = 0;   
+   u_int cursor_closest = UINT_MAX;
    
    for (u_int i = 0; i < num_boxes; i++) {
 
       
-      double local_min_score = DBL_MAX;
+      u_int local_min_score = UINT_MAX;
       for (u_int c = 0; c < num_boxes; c++) {
          
          // get score for box i and pos i
-         double score = pow((double) boxes[i].x-goal_positions[c].x,2) + \
-                              pow((double) boxes[i].y-goal_positions[c].y,2);
+         u_int score = abs(boxes[i].x-goal_positions[c].x) + \
+                        abs(boxes[i].y-goal_positions[c].y);
          
          if (score < local_min_score) 
             local_min_score = score;
          
       }
       if (local_min_score != 0) {
-         double temp =  pow((double) boxes[i].x-cursor->x,2) + \
-         pow((double) boxes[i].y-cursor->y,2);
+         u_int temp = abs(boxes[i].x-cursor->x) + \
+                              abs(boxes[i].y-cursor->y);
          if (temp < cursor_closest)
             cursor_closest = temp;
       }
@@ -153,39 +171,26 @@ double heuristic_match_closest(Coordinate *boxes, Coordinate *goal_positions, Co
 
 // calculate the number of boxes not in goal positions 
 // OPTIMAL
-// the minimum euclidian distance of the current cursor compared to all the boxes(not in goal) is added to the final score as well.
-double heuristic_count_boxes(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
-   double total_score = num_boxes;   
-   double cursor_closest = DBL_MAX;
+u_int heuristic_count_boxes(Coordinate *boxes, Coordinate *goal_positions, Coordinate *cursor, u_int num_boxes) {
+   u_int total_score = num_boxes;   
    
    for (u_int i = 0; i < num_boxes; i++) {
-      _Bool in_goal = False;
       for (u_int c = 0; c < num_boxes; c++) 
          // check if it is in goal position
          if ((goal_positions[c].x == boxes[i].x) && \
             (goal_positions[c].y == boxes[i].y)) {
-            in_goal = True;
             total_score--;
          }
-      
-      if (! in_goal) {
-         double temp =  pow((double) boxes[i].x-cursor->x,2) + \
-         pow((double) boxes[i].y-cursor->y,2);
-         if (temp < cursor_closest)
-            cursor_closest = temp;
-      }
    }
-   if (total_score == 0)
-      return 0;
-   total_score += cursor_closest;
+
    return total_score;
 }
 
 int compare_state(void *present_state, void *new_state) {
    State *ps = present_state;
    State *ns = new_state;
-   double p_score = ps->heuristic_score + ps->cost_score;
-   double n_score = ns->heuristic_score + ns->cost_score;
+   u_int p_score = ps->heuristic_score + ps->cost_score;
+   u_int n_score = ns->heuristic_score + ns->cost_score;
    
    if (p_score > n_score)
       return 1;
@@ -195,8 +200,11 @@ int compare_state(void *present_state, void *new_state) {
    return 0;
 }
 
-//deadlock -> if wall above or below -> if (no goal on same line) AND no space on wall row -> deadlock
-//            if wall left or right -> if (no goal on same column) AND no space on wall column-> deadlock
+/* deadlock scenarios:
+*         if there is a wall on at least one side of the box in the x-axis AND in the y-axis
+*         if a box is locked and can only move to one direction only and in that direction there are no goal positions 
+* !!! a box is counted as a space, meaning only walls are taken into consideration, so deadlocks caused by boxes sticked together goes undetected!!!
+*/
 _Bool simple_deadlock_detect(char **puzzle, Coordinate *boxes, int num_boxes) {
    
    for (int bx = 0; bx < num_boxes; bx++) {
@@ -218,7 +226,11 @@ _Bool simple_deadlock_detect(char **puzzle, Coordinate *boxes, int num_boxes) {
       
       if (x_lock && y_lock)
          return True;
-         
+      
+      // check if box can move to a single direction only
+      // and further check if there is a goal in that direction it can move
+      // if there isn't then DEADLOCK
+      
       int ptr = y;
       for (; puzzle[x][ptr] != '#'; ptr--) ;
       ptr++;
@@ -253,7 +265,7 @@ _Bool simple_deadlock_detect(char **puzzle, Coordinate *boxes, int num_boxes) {
    return False;
 }
 
-void print_state(char **puzzle, State *sol, Coordinate *goal_positions, int num_boxes, int puzzle_length) {
+void print_state(char **puzzle, State *sol, int num_boxes, int puzzle_length) {
    printf("-----------------\n");
    
    char **puzzle_cpy = malloc(sizeof(char *) * puzzle_length);
@@ -270,7 +282,7 @@ void print_state(char **puzzle, State *sol, Coordinate *goal_positions, int num_
    
    
    printf("move score:    %d\n", sol->cost_score);
-   printf("heuristic:    %f\n\n", sol->heuristic_score);
+   printf("heuristic:    %d\n\n", sol->heuristic_score);
    
    for (int i = 0; i < puzzle_length; i++) 
       printf("%s\n", puzzle_cpy[i]);
@@ -326,8 +338,22 @@ void getSolution(State *sol, char *str) {
    }
    
 }   
-   
-int make_move(char **puzzle, char **puzzle_temp, Queue *states, Queue *history, State *current_state, Coordinate *goal_positions, u_int num_boxes, double (*heuristic_func)(Coordinate *, Coordinate *, Coordinate *, u_int),u_int puzzle_size, _Bool verbose) {  
+
+/*
+ * to save space, we use lightweight states, meaning only the coordinates of the boxes are stored in each state.
+ * But because a puzzle matrix is useful to help in the computations, the boxes of the state are
+ * inserted to the puzzle at each run of this function and then removed
+ * 
+ * So the puzzle variable holds the puzzle matrix with only the walls and the goal positions
+ * and the puzzle_temp is an empty puzzle matrix that we use in this function to insert the boxes
+ * coordinates in, and then upon finishing of the function we clear it
+ * 
+ * Given one root state this function will attempt to make all other four children from this state (all 4 positions)
+ * but a child is not inserted if:
+ *         Satisfied the deadlock criteria (see simple_deadlock_detect function)
+ *         is found in the history or running queue. (if it is found but the new state has lower move score, the states are replaced)
+ */
+int make_move(char **puzzle, char **puzzle_temp, Queue *states, Queue *history, State *current_state, Coordinate *goal_positions, u_int num_boxes, u_int (*heuristic_func)(Coordinate *, Coordinate *, Coordinate *, u_int),u_int puzzle_size, _Bool verbose) {  
    
    // set boxes to graph
    for (u_int i = 0 ; i < num_boxes; i++) 
@@ -409,7 +435,7 @@ int make_move(char **puzzle, char **puzzle_temp, Queue *states, Queue *history, 
       
       if (verbose) {
          printf("Accepted Move: %d \n", mv);
-         print_state(puzzle, new_state,goal_positions, num_boxes, puzzle_size);
+         print_state(puzzle, new_state, num_boxes, puzzle_size);
       }
       
       insert_sorted_queue(states, new_state, compare_state);
@@ -422,7 +448,7 @@ int make_move(char **puzzle, char **puzzle_temp, Queue *states, Queue *history, 
    return 0;   
 }
 
-State *search_solution(char **puzzle, char **puzzle_temp, Queue *states,Queue *history, Coordinate *goal_positions, u_int num_boxes, double (*heuristic_func)(Coordinate *, Coordinate *, Coordinate *, u_int), u_int puzzle_size, _Bool verbose) {
+State *search_solution(char **puzzle, char **puzzle_temp, Queue *states,Queue *history, Coordinate *goal_positions, u_int num_boxes, u_int (*heuristic_func)(Coordinate *, Coordinate *, Coordinate *, u_int), u_int puzzle_size, _Bool verbose) {
    int nodes = 1;
    
    while (states->length > 0) {
@@ -438,7 +464,7 @@ State *search_solution(char **puzzle, char **puzzle_temp, Queue *states,Queue *h
       }
       if (verbose) {
          printf("\n#########################\nExpanding State: \n");
-         print_state(puzzle, state,goal_positions, num_boxes, puzzle_size);
+         print_state(puzzle, state, num_boxes, puzzle_size);
       }
       make_move(puzzle, puzzle_temp, states, history, state, goal_positions, num_boxes, heuristic_func, puzzle_size, verbose);
       if (verbose) {
@@ -488,7 +514,7 @@ int main(int argc, char **argv) {
          help(argv[0]);
    }
    
-   double (*heuristic_funct)(Coordinate *, Coordinate *, Coordinate *, u_int) = heuristic_fixed_penalty;
+   u_int (*heuristic_funct)(Coordinate *, Coordinate *, Coordinate *, u_int) = heuristic_match_closest;
    if (argc > ind) {
       if (strcmp(argv[ind], "count_boxes") == 0)
          heuristic_funct = heuristic_count_boxes;
@@ -625,7 +651,7 @@ int main(int argc, char **argv) {
    
    if (NULL != (solution = search_solution(puzzle, puzzle_temp, states, history, goal_positions, boxes_id, heuristic_funct, line_number, verbose))) {
 
-      print_state(puzzle, solution,goal_positions, boxes_id, line_number);
+      print_state(puzzle, solution, boxes_id, line_number);
 
       char *out_str = malloc(sizeof(char) * (solution->cost_score*6 + 1));
       out_str[0] = 0;
