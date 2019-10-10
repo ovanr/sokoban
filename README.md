@@ -1,4 +1,4 @@
-# Automated Sokoban Puzzle solver
+# Sokoban Puzzle solver using A* algorithm
 
 **_This program assumes the puzzle given is surrounded by walls <br/>so no checks are made to see if a box or the cursor moves out of boundaries_**
 
@@ -24,7 +24,7 @@ Available Heuristic Algorithms:<br/>
 - match_closest  ->  *for each box get its minimum distance from a goal position and sum it all up (multiple boxes can be matched on the same goal position)*
 
 All the algorithms except the count_boxes, also add the minimum distance of the cursor from an unmatched box<br/>
-Optional arguments:<br/>
+<br/>Optional arguments:<br/>
 - --help                  show this help message and exit
 - --silent                Don't print intermediary states
    
