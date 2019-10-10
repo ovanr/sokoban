@@ -15,7 +15,7 @@
 Simple Sokoban puzzle solver<br/>
 Puzzle is read from stdin<br/>
 
-Default heuristic algorithm is match_closest<br/>
+Default heuristic algorithm is fixed_penalty<br/>
    
 Available Heuristic Algorithms:<br/>
 - count_boxes      *Count the number of boxes that aren't in goal position only*
