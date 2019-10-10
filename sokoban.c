@@ -514,7 +514,7 @@ int main(int argc, char **argv) {
          help(argv[0]);
    }
    
-   u_int (*heuristic_funct)(Coordinate *, Coordinate *, Coordinate *, u_int) = heuristic_match_closest;
+   u_int (*heuristic_funct)(Coordinate *, Coordinate *, Coordinate *, u_int) = heuristic_fixed_penalty;
    if (argc > ind) {
       if (strcmp(argv[ind], "count_boxes") == 0)
          heuristic_funct = heuristic_count_boxes;
